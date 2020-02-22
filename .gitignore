@@ -1,3 +1,4 @@
 tmp
 *.bat
 **/node_modules
+**/dist

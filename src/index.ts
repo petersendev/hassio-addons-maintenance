@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as yargs from "yargs";
 import { Manager } from "./manager";
 import { update } from "./commands/update";
@@ -7,7 +9,8 @@ import { build } from "./commands/build";
 const manager = new Manager();
 
 const argv = yargs
-    .command(["update", "$0"], "performs addon updates", (args) =>
+    .scriptName("ham")
+    .command("update", "performs addon updates", (args) =>
     {
         return args
             .option("patch", {

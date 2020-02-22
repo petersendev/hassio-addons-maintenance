@@ -3,7 +3,7 @@ import * as path from "path";
 
 export class Manager
 {
-    public rootDir = "..";
+    public rootDir = process.cwd();
     public tmpDir = "tmp";
 
     async getAddonDirs()
