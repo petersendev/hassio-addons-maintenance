@@ -9,6 +9,8 @@ export async function update(manager: Manager, opts: { patch: boolean })
 {
     let first = true;
     let updated = false;
+    let appRelease = false;
+
     for (const addon of await manager.getAddonDirs())
     {
         if (!first)
@@ -61,14 +63,30 @@ export async function update(manager: Manager, opts: { patch: boolean })
         }
         else
         {
-            image = build_json.build_from_template.image;
-            tag = build_json.build_from_template.version;
+            if (build_json.build_from_template)
+            {
+                image = build_json.build_from_template.image;
+                tag = build_json.build_from_template.version;
+            }
+            else
+            {
+                appRelease = true;
+                tag = build_json.args.RELEASE;
+            }
         }
 
-        const releaseInfo = await request({
-            uri: `${config.maintenance.github_release}/releases/latest`,
-            json: true
-        });
+        const releaseInfo = config.maintenance.include_prerelease ?
+            (await request({
+                uri: `${config.maintenance.github_release.replace("github.com", "api.github.com/repos")}/releases`,
+                headers: {
+                    "User-Agent": "ham"
+                },
+                json: true
+            }))[0] :
+            await request({
+                uri: `${config.maintenance.github_release}/releases/latest`,
+                json: true
+            });
 
         let coloredTag = tag;
         let appVersion = "";
@@ -94,7 +112,7 @@ export async function update(manager: Manager, opts: { patch: boolean })
         if (tag == releaseInfo.tag_name)
         {
             //TODO: different output for build.json usage
-            console.log(chalk.greenBright(`base image ${image}:${chalk.magenta(coloredTag)} is up-to-date`))
+            console.log(chalk.greenBright(`base ${appRelease ? "application" : "image"} ${image}:${chalk.magenta(coloredTag)} is up-to-date`))
         }
         else
         {
@@ -125,11 +143,19 @@ export async function update(manager: Manager, opts: { patch: boolean })
                 }
                 else
                 {
-                    console.log(chalk.yellowBright(`updating base images in build.json from ${image}:{arch}-${chalk.magenta(coloredTag)} to ${image}:{arch}-${chalk.magenta(newColoredTag)}`));
-                    build_json.build_from_template.version = releaseInfo.tag_name;
-                    for (let arch in build_json.build_from)
+                    if (appRelease)
                     {
-                        build_json.build_from[arch] = build_json.build_from[arch].replace(tag, releaseInfo.tag_name);
+                        console.log(chalk.yellowBright(`updating application release in build.json from ${chalk.magenta(coloredTag)} to ${chalk.magenta(newColoredTag)}`));
+                        build_json.args.RELEASE = releaseInfo.tag_name;
+                    }
+                    else
+                    {
+                        console.log(chalk.yellowBright(`updating base images in build.json from ${image}:{arch}-${chalk.magenta(coloredTag)} to ${image}:{arch}-${chalk.magenta(newColoredTag)}`));
+                        build_json.build_from_template.version = releaseInfo.tag_name;
+                        for (let arch in build_json.build_from)
+                        {
+                            build_json.build_from[arch] = build_json.build_from[arch].replace(tag, releaseInfo.tag_name);
+                        }
                     }
                     await fs.writeJSONAsync(buildJsonPath, build_json, { spaces: 4 });
                 }
@@ -143,9 +169,11 @@ export async function update(manager: Manager, opts: { patch: boolean })
                 //     `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
                 //     `Update base image to ${image}:${releaseInfo.tag_name}`}`);
 
-                await manager.appendChangelog(addon, newVersion, minorUpgrade ?
-                    `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
-                    `Update base image to ${image}:${releaseInfo.tag_name}`);
+                await manager.appendChangelog(addon, newVersion, 
+                    appRelease ? `Update ${config.name} to ${newAppVersion} (${releaseInfo.tag_name})` :
+                    (minorUpgrade ?
+                        `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
+                        `Update base image to ${image}:${releaseInfo.tag_name}`));
 
 
                 updated = true;
