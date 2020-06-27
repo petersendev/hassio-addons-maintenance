@@ -9,10 +9,10 @@ export async function update(manager: Manager, opts: { patch: boolean })
 {
     let first = true;
     let updated = false;
-    let appRelease = false;
-
+    
     for (const addon of await manager.getAddonDirs())
     {
+        let appRelease = false;
         if (!first)
         {
             console.log(chalk.gray("============================================================="));
@@ -112,7 +112,7 @@ export async function update(manager: Manager, opts: { patch: boolean })
         if (tag == releaseInfo.tag_name)
         {
             //TODO: different output for build.json usage
-            console.log(chalk.greenBright(`base ${appRelease ? "application" : "image"} ${image}:${chalk.magenta(coloredTag)} is up-to-date`))
+            console.log(chalk.greenBright(`base ${appRelease ? "application " : `image ${image}:`}${chalk.magenta(coloredTag)} is up-to-date`))
         }
         else
         {
@@ -169,11 +169,11 @@ export async function update(manager: Manager, opts: { patch: boolean })
                 //     `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
                 //     `Update base image to ${image}:${releaseInfo.tag_name}`}`);
 
-                await manager.appendChangelog(addon, newVersion, 
+                await manager.appendChangelog(addon, newVersion,
                     appRelease ? `Update ${config.name} to ${newAppVersion} (${releaseInfo.tag_name})` :
-                    (minorUpgrade ?
-                        `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
-                        `Update base image to ${image}:${releaseInfo.tag_name}`));
+                        (minorUpgrade ?
+                            `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
+                            `Update base image to ${image}:${releaseInfo.tag_name}`));
 
 
                 updated = true;
