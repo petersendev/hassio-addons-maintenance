@@ -5,6 +5,7 @@ import { Manager } from "./manager";
 import { update } from "./commands/update";
 import { run } from "./commands/run";
 import { build } from "./commands/build";
+import { docs } from "./commands/docs";
 
 const manager = new Manager();
 
@@ -36,6 +37,12 @@ const argv = yargs
         (opts) =>
         {
             build(manager, opts);
+        })
+    .command("docs", "generate/update readme files", (argv)=>
+        argv,
+        (opts) =>
+        {
+            docs(manager, opts);
         })
     .argv;
 
