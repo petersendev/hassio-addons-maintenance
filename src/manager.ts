@@ -6,7 +6,7 @@ export class Manager
     public rootDir = process.cwd();
     public tmpDir = "tmp";
 
-    async getAddonDirs()
+    async getAddonDirs(): Promise<string[]>
     {
         let dirs = await fs.readdirAsync(this.rootDir);
 
@@ -18,7 +18,7 @@ export class Manager
         return path.join(this.rootDir, addon);
     }
 
-    async getAddonConfig(addon:string)
+    async getAddonConfig(addon: string)
     {
         return await fs.readJSONAsync(this.getConfigPath(addon));
     }
@@ -41,6 +41,11 @@ export class Manager
     getChangelogPath(addon: string)
     {
         return path.join(this.getAddonPath(addon), "CHANGELOG.md");
+    }
+
+    getMainReadmePath()
+    {
+        return path.join(this.rootDir, "README.md");
     }
 
     async appendChangelog(addon: string, version: string, content: string | string[])
