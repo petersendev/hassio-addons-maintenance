@@ -2,14 +2,46 @@ import * as fs from "fs-extra-promise";
 import * as path from "path";
 import * as request from "request-promise";
 import chalk from "chalk";
+import simpleGit, { SimpleGit, SimpleGitOptions, ResetMode } from 'simple-git';
+import * as moment from "moment";
+import * as readline from "readline";
+
 import * as semver from "semver";
 import { Manager } from "../manager";
 
 export async function update(manager: Manager, opts: { patch: boolean })
 {
+    let useGit = true;
+
     let first = true;
     let updated = false;
-    
+
+    // always setup git
+    const gitOptions: SimpleGitOptions = {
+        baseDir: manager.rootDir,
+        binary: "git",
+        maxConcurrentProcesses: 1
+    };
+
+    const git = simpleGit(gitOptions);
+    const branch = `updates-${moment().format("YYYY-MM-DD")}`;
+
+    // perform git actions only if flag is set
+    if (useGit)
+    {
+        // make sure we are on master and up to date
+        await git.checkout("master");
+        await git.pull();
+
+        await cleanUpLocalBranches(git, true);
+
+        // create branch for this update
+        await git.checkoutLocalBranch(branch);
+
+        // reset in case of local changes
+        await git.reset(ResetMode.HARD);
+    }
+
     for (const addon of await manager.getAddonDirs())
     {
         let appRelease = false;
@@ -169,15 +201,72 @@ export async function update(manager: Manager, opts: { patch: boolean })
                 //     `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
                 //     `Update base image to ${image}:${releaseInfo.tag_name}`}`);
 
-                await manager.appendChangelog(addon, newVersion,
-                    appRelease ? `Update ${config.name} to ${newAppVersion} (${releaseInfo.tag_name})` :
-                        (minorUpgrade ?
-                            `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
-                            `Update base image to ${image}:${releaseInfo.tag_name}`));
+                const msg = appRelease ? `Update ${config.name} to ${newAppVersion} (${releaseInfo.tag_name})` :
+                    (minorUpgrade ?
+                        `Update ${config.name} to ${newAppVersion} (${image}:${releaseInfo.tag_name})` :
+                        `Update base image to ${image}:${releaseInfo.tag_name}`);
 
+                await manager.appendChangelog(addon, newVersion, msg);
+
+                if (useGit)
+                {
+                    await git.add(`${addon}/*`);
+                    await git.commit(msg);
+                }
 
                 updated = true;
             }
         }
     }
+
+    if (useGit)
+    {
+        if (!updated)
+        {
+            logGitAction("no addons updated, cleaning up git");
+            await cleanUpLocalBranches(git, false);
+        }
+        else
+        {
+            const gitLog = (await git.log({ from: "master", to: branch })).all.map(x => x.message);
+            const ans = await userInput(`\n\t${gitLog.join("\n\t")}\n\npush these changes? [Yn]: `);
+
+            if (ans.toLowerCase() == "y" || ans == "")
+            {
+                await git.push("origin", branch, ["-u"]);
+                logGitAction(`pushed branch ${branch}`);
+            }
+        }
+    }
 };
+
+async function cleanUpLocalBranches(git: SimpleGit, force: boolean)
+{
+    // clean up local branches
+    let branches = (await git.branchLocal()).all.filter(b => b.startsWith("updates"));
+
+    if (branches && branches.length)
+    {
+        logGitAction(`deleting local branches: ${branches.join(", ")}`);
+        await git.deleteLocalBranches(branches, force);
+    }
+}
+
+function logGitAction(text: string)
+{
+    console.log(chalk.cyan(text));
+}
+
+function userInput(query: string): Promise<string>
+{
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    return new Promise(resolve => rl.question(query, (ans: string) =>
+    {
+        rl.close();
+        resolve(ans);
+    }));
+}
