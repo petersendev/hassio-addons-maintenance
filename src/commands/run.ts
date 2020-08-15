@@ -23,6 +23,7 @@ export async function run(manager: Manager, opts: any)
     const shareTmpPath = path.join(addonTmpPath, "share");
     const configTmpPath = path.join(addonTmpPath, "config");
     const dataTmpPath = path.join(addonTmpPath, "data");
+    const sslTmpPath = path.join(addonTmpPath, "ssl");
     const optionsFilePath = path.join(dataTmpPath, "options.json");
 
     if (opts.clean)
@@ -33,6 +34,7 @@ export async function run(manager: Manager, opts: any)
     await fs.ensureDirAsync(shareTmpPath);
     await fs.ensureDirAsync(configTmpPath);
     await fs.ensureDirAsync(dataTmpPath);
+    await fs.ensureDirAsync(sslTmpPath);
 
     if (!await fs.existsAsync(optionsFilePath))
     {
@@ -55,7 +57,9 @@ export async function run(manager: Manager, opts: any)
             `${path.resolve(configTmpPath)}:/config`,
             "-v",
             `${path.resolve(dataTmpPath)}:/data`,
-            ...[].concat(...Object.keys(config.ports).map(x => ["-p", `${config.ports[x]}:${config.ports[x]}`])),
+            "-v",
+            `${path.resolve(sslTmpPath)}:/ssl`,
+            ...[].concat(...Object.keys(config.ports).map(x => ["-p", `${config.ports[x]}:${x.replace("/tcp", "")}`])),
             ...[].concat(...(config.privileged || []).map(x => ["--cap-add", `${x}`])),
             ...[].concat(...Object.keys(config.environment || {}).map(x => ["-e", `${x}=${config.environment[x]}`])),
             "--name",
@@ -80,5 +84,6 @@ export async function run(manager: Manager, opts: any)
     }
 
     process.on('SIGINT', exit);
+    console.log("starting addon via docker:\ndocker " + args.join(" "));
     child = spawn("docker", args, { stdio: 'inherit' });
 }
