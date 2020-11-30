@@ -9,9 +9,9 @@ import * as readline from "readline";
 import * as semver from "semver";
 import { Manager } from "../manager";
 
-export async function update(manager: Manager, opts: { patch: boolean })
+export async function update(manager: Manager, opts: { patch: boolean, noGit: boolean })
 {
-    let useGit = true;
+    let useGit = !opts.noGit;
 
     let first = true;
     let updated = false;
