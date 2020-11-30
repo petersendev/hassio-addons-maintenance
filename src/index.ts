@@ -18,6 +18,11 @@ const argv = yargs
                 alias: "p",
                 default: false,
                 boolean: true
+            })
+            .option("noGit", {
+                alias: "n",
+                default: false,
+                boolean: true
             });
     }, (opts) =>
     {
