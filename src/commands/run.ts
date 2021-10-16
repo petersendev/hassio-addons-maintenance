@@ -44,7 +44,7 @@ export async function run(manager: Manager, opts: any)
     if (!opts.nobuild)
     {
         console.log("building image(s)");
-        await build(manager, { addon, nocheck: true, arch: "--amd64" });
+        await build(manager, { addon, nocheck: true, arch: "amd64" });
     }
 
     let args =
@@ -58,7 +58,7 @@ export async function run(manager: Manager, opts: any)
             "-v",
             `${path.resolve(dataTmpPath)}:/data`,
             "-v",
-            `${path.resolve(sslTmpPath)}:/ssl`,
+            `${path.resolve(sslTmpPath)}:/ssl:ro`,
             ...[].concat(...Object.keys(config.ports).map(x => ["-p", `${config.ports[x]}:${x.replace("/tcp", "")}`])),
             ...[].concat(...(config.privileged || []).map(x => ["--cap-add", `${x}`])),
             ...[].concat(...Object.keys(config.environment || {}).map(x => ["-e", `${x}=${config.environment[x]}`])),

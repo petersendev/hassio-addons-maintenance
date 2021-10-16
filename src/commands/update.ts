@@ -57,6 +57,12 @@ export async function update(manager: Manager, opts: { patch: boolean, noGit: bo
         const configPath = manager.getConfigPath(addon);
         const buildJsonPath = manager.getBuildJsonPath(addon);
 
+        if (!(await fs.existsAsync(configPath)))
+        {
+            console.log(chalk.redBright(`no config found for addon ${chalk.blue(addon)}, skipping`));
+            continue;
+        }
+
         const config = await fs.readJSONAsync(configPath);
         let version = semver.valid(config.version);
         if (!version)

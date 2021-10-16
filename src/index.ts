@@ -38,7 +38,11 @@ const argv = yargs
         })
     .command("build <addon>", "builds an addon", (argv) =>
         argv
-            .option("nocheck", { alias: "n", default: false, boolean: true }),
+            .option("nocheck", { alias: "n", default: false, boolean: true })
+            .option("notest", { alias: "t", default: false, boolean: true })
+            .option("user", { alias: "u", default: null, boolean: false })
+            .option("password", { alias: "p", default: null, boolean: false })
+            .option("arch", { alias: "a", default: null, boolean: false }),
         (opts) =>
         {
             build(manager, opts);

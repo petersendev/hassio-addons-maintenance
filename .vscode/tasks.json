@@ -10,9 +10,11 @@
                 "$tsc"
             ],
             "group": {
-                "isDefault": true,
-                "kind": "build"
-            }
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "npm: local",
+            "detail": "yarn build && yarn global add file:%CD% && ham --help"
         }
     ]
 }

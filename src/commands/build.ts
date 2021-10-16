@@ -13,7 +13,7 @@ export async function build(manager: Manager, opts: any)
     }
     else if(!Array.isArray(opts.arch))
     {
-        opts.arch = [opts.arch];
+        opts.arch = [`--${opts.arch}`];
     }
 
     let args = [
@@ -29,10 +29,26 @@ export async function build(manager: Manager, opts: any)
         "homeassistant/amd64-builder:latest",
         "--addon",
         ...opts.arch,
-        "--test",
         "-t",
         `/data/${addon}`
     ];
+
+    if(!opts.notest)
+    {
+        args = args.concat([
+            "--test"
+        ]);
+    }
+
+    if(opts.user && opts.password)
+    {
+        args = args.concat([
+            "--docker-user",
+            opts.user,
+            "--docker-password",
+            opts.password
+        ]);
+    }
 
     if (!opts.nocheck)
     {
